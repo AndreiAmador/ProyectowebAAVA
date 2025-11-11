@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mi Perfil</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head><body>
+<nav class="navbar navbar-light" style="background:#00A9A1;">
+  <div class="container">
+    <a class="navbar-brand text-white" href="index.html">Plataforma Local</a>
+    <div class="d-flex gap-2">
+      <a class="btn btn-light btn-sm" href="publicar.html">Publicar servicio</a>
+      <button class="btn btn-outline-light btn-sm" id="logoutBtn">Salir</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <div class="alert alert-info" id="who"></div>
+
+  <h3 class="mb-3">Perfil del profesional</h3>
+  <form id="perfilForm" class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Nombre público</label>
+      <input id="pfNombre" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Categoría / Oficio</label>
+      <input id="pfRubro" class="form-control" placeholder="Electricista, Plomero, Mecánico…">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Bio</label>
+      <textarea id="pfBio" class="form-control" rows="3" placeholder="Experiencia, años de trabajo, certificaciones…"></textarea>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Teléfono / WhatsApp</label>
+      <input id="pfTelefono" class="form-control">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Link (Facebook/IG/web)</label>
+      <input id="pfLink" class="form-control" placeholder="https://…">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Foto (URL)</label>
+      <input id="pfFoto" class="form-control" placeholder="https://…/mi-foto.jpg">
+    </div>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary">Guardar perfil</button>
+      <a href="publicar.html" class="btn btn-outline-secondary">Publicar servicio</a>
+    </div>
+  </form>
+
+  <hr class="my-4">
+  <h3 class="mb-3">Currículum (trabajos realizados)</h3>
+  <form id="cvForm" class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Título del trabajo</label>
+      <input id="cvTitulo" class="form-control" placeholder="Instalación de lámparas en casa">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Imagen (URL) opcional</label>
+      <input id="cvImg" class="form-control" placeholder="https://…/foto.jpg">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Descripción</label>
+      <textarea id="cvDesc" class="form-control" rows="3" placeholder="Qué hiciste, materiales, resultados, garantía…"></textarea>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-success">Añadir al CV</button>
+    </div>
+  </form>
+
+  <div class="mt-4">
+    <h5>Mis trabajos (CV)</h5>
+    <div id="listaCV" class="row g-3"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+App.requiereLogin();
+App.cargarPerfilEnFormulario();
+App.renderCV();
+
+perfilForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  App.guardarPerfil({
+    nombre: pfNombre.value, rubro: pfRubro.value, bio: pfBio.value,
+    telefono: pfTelefono.value, link: pfLink.value, foto: pfFoto.value
+  });
+});
+
+cvForm.addEventListener('submit',(e)=>{
+  e.preventDefault();
+  App.agregarCV({ titulo: cvTitulo.value, descripcion: cvDesc.value, imagen: cvImg.value });
+  cvTitulo.value = ""; cvDesc.value = ""; cvImg.value = "";
+});
+
+document.getElementById('logoutBtn').onclick = ()=>App.logout();
+</script>
+</body></html>
