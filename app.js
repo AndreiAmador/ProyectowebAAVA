@@ -1,120 +1,141 @@
-const LS = {
-  get(k, d= null){ try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
-  set(k, v){ localStorage.setItem(k, JSON.stringify(v)); },
-  push(k, item){
-    const arr = LS.get(k, []);
-    arr.push(item); LS.set(k, arr);
-  }
-};
+const App = (() => {
+  const KEYS = {
+    USUARIOS: "usuarios",
+    ACTIVO: "usuarioActivo",
+    PERFILES: "perfiles",
+    SERVICIOS: "servicios",
+    CVS: "curriculums"
+  };
 
-const App = {
-  requiereLogin(){
-    const u = LS.get("usuarioActivo");
-    if(!u){ alert("Debes iniciar sesión"); location.href = "login.html"; }
-  },
-  logout(){
-    localStorage.removeItem("usuarioActivo");
-    location.href = "index.html";
-  },
-  registrar({nombre, correo, password}){
-    const usuarios = LS.get("usuarios", []);
-    if(usuarios.find(u=>u.correo===correo)){ alert("Correo ya registrado"); return; }
-    usuarios.push({nombre, correo, password, perfil:{}, cv:[]});
-    LS.set("usuarios", usuarios);
-    alert("Registro exitoso, ahora inicia sesión");
-    location.href = "login.html";
-  },
-  
-  cargarPerfilEnFormulario(){
-    const who = LS.get("usuarioActivo"); if(!who) return;
-    const usuarios = LS.get("usuarios", []);
-    const yo = usuarios.find(u=>u.correo===who.correo);
-    document.getElementById("who").textContent = `Sesión: ${who.nombre} (${who.correo})`;
-    const p = yo.perfil || {};
-    (pfNombre.value = p.nombre || who.nombre);
-    (pfRubro.value  = p.rubro  || "");
-    (pfBio.value    = p.bio    || "");
-    (pfTelefono.value= p.telefono || "");
-    (pfLink.value   = p.link   || "");
-    (pfFoto.value   = p.foto   || "");
-  },
-  guardarPerfil(perfil){
-    const who = LS.get("usuarioActivo"); if(!who) return;
-    const usuarios = LS.get("usuarios", []);
-    const yo = usuarios.find(u=>u.correo===who.correo);
-    yo.perfil = perfil;
-    LS.set("usuarios", usuarios);
-    alert("Perfil guardado");
-  },
-  
-  agregarCV({titulo, descripcion, imagen}){
-    const who = LS.get("usuarioActivo"); if(!who) return;
-    const usuarios = LS.get("usuarios", []);
-    const yo = usuarios.find(u=>u.correo===who.correo);
-    yo.cv = yo.cv || [];
-    yo.cv.push({titulo, descripcion, imagen, fecha: new Date().toISOString()});
-    LS.set("usuarios", usuarios);
-    App.renderCV();
-  },
-  renderCV(){
-    const who = LS.get("usuarioActivo"); if(!who) return;
-    const usuarios = LS.get("usuarios", []);
-    const yo = usuarios.find(u=>u.correo===who.correo);
-    const cont = document.getElementById("listaCV");
-    if(!cont) return;
-    cont.innerHTML = "";
-    (yo.cv||[]).forEach(item=>{
-      const col = document.createElement("div");
-      col.className = "col-md-6";
-      col.innerHTML = `
-        <div class="card h-100">
-          ${item.imagen ? `<img src="${item.imagen}" class="card-img-top" alt="cv">` : ""}
-          <div class="card-body">
-            <h5 class="card-title">${item.titulo}</h5>
-            <p class="card-text">${item.descripcion}</p>
-            <small class="text-muted">${new Date(item.fecha).toLocaleString()}</small>
-          </div>
-        </div>`;
-      cont.appendChild(col);
-    });
-  },
-  
-  publicarServicio({titulo, categoria, descripcion, precio, imagen}){
-    const who = LS.get("usuarioActivo"); if(!who) return;
-    const usuarios = LS.get("usuarios", []);
-    const yo = usuarios.find(u=>u.correo===who.correo);
-    const perfil = yo.perfil || { nombre: who.nombre };
-    const post = {
-      id: crypto.randomUUID?.() || String(Date.now()),
-      titulo, categoria, descripcion, precio, imagen,
-      autor: {nombre: perfil.nombre || who.nombre, correo: who.correo, rubro: perfil.rubro || "" },
-      fecha: new Date().toISOString()
-    };
-    LS.push("posts", post);
-    alert("Publicado");
+  const get = (k, d=[]) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
+  const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const activo = () => JSON.parse(localStorage.getItem(KEYS.ACTIVO) || "null");
+
+  // ---------- Auth ----------
+  function registrar({nombre, correo, password}) {
+    const usuarios = get(KEYS.USUARIOS);
+    if (usuarios.some(u => u.correo === correo)) {
+      alert("Ese correo ya existe");
+      return;
+    }
+    usuarios.push({nombre, correo, password});
+    set(KEYS.USUARIOS, usuarios);
+    localStorage.setItem(KEYS.ACTIVO, JSON.stringify({nombre, correo}));
+    alert("Cuenta creada. ¡Bienvenido!");
     location.href = "perfil.html";
-  },
-  renderServiciosEnHome(){
-    const cont = document.getElementById("listaServicios");
-    if(!cont) return;
-    const posts = (LS.get("posts", [])).slice().reverse();
-    cont.innerHTML = "";
-    posts.forEach(p=>{
-      const col = document.createElement("div");
-      col.className = "col-md-4";
-      col.innerHTML = `
-        <div class="card h-100">
-          ${p.imagen ? `<img src="${p.imagen}" class="card-img-top" alt="servicio">` : ""}
-          <div class="card-body">
-            <h5 class="card-title">${p.titulo}</h5>
-            <p class="card-text">${p.descripcion || ""}</p>
-            <p class="card-text"><strong>Categoria:</strong> ${p.categoria}</p>
-            <p class="card-text"><strong>Precio:</strong> $${(p.precio||0).toLocaleString()}</p>
-            <hr>
-            <p class="small text-muted">Por: ${p.autor?.nombre || "Anónimo"} ${p.autor?.rubro? "("+p.autor.rubro+")":""}</p>
-          </div>
-        </div>`;
-      cont.appendChild(col);
-    });
   }
-};
+
+  function requiereLogin() {
+    const user = activo();
+    if (!user) { location.href = "login.html"; return; }
+    const who = document.getElementById('who');
+    if (who) who.textContent = `Sesión: ${user.nombre} (${user.correo})`;
+  }
+
+  function logout() {
+    localStorage.removeItem(KEYS.ACTIVO);
+    location.href = "index.html";
+  }
+
+  // ---------- Perfil ----------
+  function cargarPerfilEnFormulario() {
+    const user = activo(); if (!user) return;
+    const perfiles = get(KEYS.PERFILES);
+    const p = perfiles.find(x => x.correo === user.correo) || {};
+    const by = id => document.getElementById(id);
+    (by('pfNombre')||{}).value = p.nombre || (user && user.nombre) || "";
+    (by('pfRubro')||{}).value  = p.rubro  || "";
+    (by('pfBio')||{}).value    = p.bio    || "";
+    (by('pfTelefono')||{}).value = p.telefono || "";
+    (by('pfLink')||{}).value   = p.link   || "";
+    (by('pfFoto')||{}).value   = p.foto   || "";
+  }
+
+  function guardarPerfil(data) {
+    const user = activo(); if (!user) return;
+    let perfiles = get(KEYS.PERFILES);
+    const i = perfiles.findIndex(x => x.correo === user.correo);
+    const perfil = {...data, correo: user.correo};
+    if (i >= 0) perfiles[i] = perfil; else perfiles.push(perfil);
+    set(KEYS.PERFILES, perfiles);
+    alert("Perfil guardado");
+  }
+
+  // ---------- CV (trabajos realizados) ----------
+  function agregarCV(item) {
+    const user = activo(); if (!user) return;
+    const cvs = get(KEYS.CVS);
+    const id = Date.now();
+    cvs.push({ id, autor: user.correo, ...item, fecha: new Date().toISOString() });
+    set(KEYS.CVS, cvs);
+    renderCV();
+  }
+
+  function renderCV() {
+    const cont = document.getElementById('listaCV'); if (!cont) return;
+    const user = activo(); if (!user) return;
+    const cvs = get(KEYS.CVS).filter(x => x.autor === user.correo).reverse();
+    cont.innerHTML = cvs.map(cv => `
+      <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+          ${cv.imagen ? `<img src="${cv.imagen}" class="card-img-top" alt="${cv.titulo}">` : ""}
+          <div class="card-body">
+            <h6 class="card-title mb-1">${cv.titulo || 'Trabajo realizado'}</h6>
+            <p class="card-text small">${cv.descripcion || ''}</p>
+            <span class="badge text-bg-light">${new Date(cv.fecha).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+    `).join('') || `<p class="text-muted">Aún no agregas trabajos a tu CV.</p>`;
+  }
+
+  // ---------- Publicaciones de servicios ----------
+  function publicarServicio(s) {
+    const user = activo(); if (!user) return;
+    const servicios = get(KEYS.SERVICIOS);
+    const id = Date.now();
+    servicios.push({ id, autor: user.correo, ...s, fecha: new Date().toISOString() });
+    set(KEYS.SERVICIOS, servicios);
+    alert("¡Servicio publicado!");
+    location.href = "index.html";
+  }
+
+  function renderServiciosEnHome() {
+    const cont = document.getElementById('listaServicios'); if (!cont) return;
+    const servicios = get(KEYS.SERVICIOS).slice().reverse();
+    const perfiles = get(KEYS.PERFILES);
+
+    cont.innerHTML = servicios.map(s => {
+      const autor = perfiles.find(p => p.correo === s.autor) || {};
+      const foto = autor.foto || "https://via.placeholder.com/64";
+      return `
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <img src="${s.imagen || 'https://via.placeholder.com/600x300'}" class="card-img-top" alt="${s.titulo}">
+          <div class="card-body">
+            <h5 class="card-title">${s.titulo}</h5>
+            <p class="card-text small text-muted">${s.categoria||''} · $${s.precio||0} MXN</p>
+            <p class="card-text">${s.descripcion||''}</p>
+            <div class="d-flex align-items-center gap-2">
+              <img src="${foto}" width="32" height="32" style="border-radius:999px;">
+              <div class="small">
+                <div>${autor.nombre||'Profesional local'}</div>
+                <div class="text-muted">
+                  ${autor.rubro||''} ${autor.telefono?`· ${autor.telefono}`:''}
+                  ${autor.link?`· <a href="${autor.link}" target="_blank">link</a>`:''}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('') || `<p class="text-muted">Aún no hay publicaciones. ¡Sé el primero en publicar!</p>`;
+  }
+
+  return {
+    registrar, requiereLogin, logout,
+    cargarPerfilEnFormulario, guardarPerfil,
+    agregarCV, renderCV,
+    publicarServicio, renderServiciosEnHome
+  };
+})();
