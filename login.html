@@ -48,5 +48,27 @@
     });
   </script>
 
+
+<!-- Lógica de app -->
+<script src="app.js"></script>
+<script>
+// Handler de login no intrusivo (requiere IDs: #loginForm, #emailInput, #passwordInput)
+(function(){
+  const form = document.getElementById("loginForm");
+  const email = document.getElementById("emailInput");
+  const pass = document.getElementById("passwordInput");
+  if (!form || !email || !pass) return; // no forzamos si tu HTML usa otros IDs
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    const correo = email.value.trim().toLowerCase();
+    const password = pass.value;
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")||"[]");
+    const u = usuarios.find(x=>x.correo===correo && x.password===password);
+    if(!u){ alert("Correo o contraseña incorrectos"); return; }
+    localStorage.setItem("usuarioActivo", JSON.stringify({nombre:u.nombre, correo:u.correo}));
+    location.href = "perfil.html";
+  });
+})();
+</script>
 </body>
 </html>
